@@ -30,7 +30,7 @@ class Game():
         self.speed = 10
 
         # Zum Testen des Spiels den Spieler unsterblich machen (True -> sterblich, False -> unsterblich)
-        self.kill_able = False
+        self.kill_able = True
 
         # Für den Countdown (in millisekunden)
         self.coutdown_start_time = 0
