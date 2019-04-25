@@ -32,6 +32,11 @@ class Game():
         # Zum Testen des Spiels den Spieler unsterblich machen (True -> sterblich, False -> unsterblich)
         self.kill_able = True
 
+        # Chance zur der ein Power-Up ein Schild ist und Dauer, wie lange man ein Schild hat
+        self.schild_percent = 0.1
+        self.schild_time = 5000
+        self.schild = None
+
         # Für den Countdown (in millisekunden)
         self.coutdown_start_time = 0
 
@@ -39,7 +44,7 @@ class Game():
         self.background_x = 0
 
         # Erreichtes
-        self.collected_starts = 0
+        self.collected_stars = 0
 
     def find_josticks(self):
         # Knöpfe und Kontroller finden und Initialisieren
@@ -427,6 +432,7 @@ class Game():
     def new(self):
         self.all_sprites = pygame.sprite.LayeredUpdates()
         self.rocks = pygame.sprite.Group()
+        self.grounds = pygame.sprite.Group()
         self.power_ups = pygame.sprite.Group()
 
         # neue Spieler
@@ -434,14 +440,16 @@ class Game():
         self.player = Player(self,color=player_color)
         self.all_sprites.add(self.player)
 
-        # Spielfeld
+        # Oben und Unten am Spielfeld den Boden bzw. die Decke platzieren
         self.rock_color = random.choice(rock_colors)
         ground1 = Ground(self, FROM_BUTTON,color=self.rock_color)
         self.all_sprites.add(ground1)
         self.rocks.add(ground1)
+        self.grounds.add(ground1)
         ground2 = Ground(self, FROM_TOP,color=self.rock_color )
         self.all_sprites.add(ground2)
         self.rocks.add(ground2)
+        self.grounds.add(ground2)
 
         # Spielfelderstell Variablen zurücksetzen
         self.last_rock_placing = pygame.time.get_ticks()
@@ -452,6 +460,7 @@ class Game():
         # Spielwerte zurücksetzen
         self.running = True
         self.in_end_expl = False
+        self.collected_stars = 0
 
     def create_new_rocks_and_power_ups(self):
         new_rock = None
@@ -472,9 +481,9 @@ class Game():
             if self.last_rock_placing < pygame.time.get_ticks() - self.time_for_next_rock:
                 self.last_rock_placing = pygame.time.get_ticks()
                 if self.rock_counter <= 4:
-                    höhe = (0.2 * self.rock_counter + 0.2) * (HEIGHT/2 - HEIGHT/6)
+                    höhe = (0.2 * self.rock_counter + 0.2) * (HEIGHT/2 - HEIGHT/7)
                 else:
-                    höhe = (0.2 * (-self.rock_counter+8) + 0.2) * (HEIGHT / 2 - HEIGHT / 6)
+                    höhe = (0.2 * (-self.rock_counter+8) + 0.2) * (HEIGHT / 2 - HEIGHT / 7)
                 new_rock = Rock(self, FROM_BUTTON, höhe = höhe, type = self.current_rock_type, color = self.rock_color, start_x = WIDTH)
                 self.time_for_next_rock = 300
                 self.rock_counter += 1
@@ -527,8 +536,7 @@ class Game():
 
     def detect_and_react_collisions(self):
         # Überprüfen, ob der Spieler gegen ein Felsen geknallt ist
-        if self.kill_able:
-            hit_place = (-100, -100)
+        if self.kill_able and not self.player.has_shield:
             hits = pygame.sprite.spritecollide(self.player, self.rocks, False)
             if len(hits) > 0:
                 self.player.mask = pygame.mask.from_surface(self.player.image)
@@ -544,7 +552,9 @@ class Game():
         hits = pygame.sprite.spritecollide(self.player, self.power_ups, True)
         for hit in hits:
             if hit.type == STAR:
-                self.collected_starts += 1
+                self.collected_stars += 1
+            elif hit.type == MEDAL:
+                self.player.start_shield()
 
     def draw_display(self):
         # Bildschrim zeichnen
@@ -556,7 +566,7 @@ class Game():
             if time.time() * 1000 - self.coutdown_start_time >= 2000:
                 self.game_status = None
         else:
-            self.draw_text(screen, str(self.collected_starts), 60, 80, 20, TEXT_COLOR, "oben_mitte")
+            self.draw_text(screen, str(self.collected_stars), 60, 80, 20, TEXT_COLOR, "oben_mitte")
 
 game = Game()
 game.start_game()

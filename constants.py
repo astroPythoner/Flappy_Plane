@@ -123,6 +123,7 @@ ground_images = load_graphics_from_file_array(file_array,path.join(img_dir,"Rock
 fallende_felsen_warnung = load_graphics_from_file_array(["warnungsschild.png"],img_dir,(0,0,255))
 
 powerup_images = load_graphics_from_file_array(["medalGold.png","starGold.png"],path.join(img_dir,"UI"),BLACK,as_dict=True)
+schild_image = load_graphics_from_file_array(["Schild.png"],img_dir,BLACK)
 
 explosion_anim = {}
 explosion_anim['lg'] = []

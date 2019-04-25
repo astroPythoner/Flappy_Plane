@@ -9,33 +9,75 @@ class Player(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.game = game
         self.color = color
+        # Bild
         self.last_image_num = 0
         self.image = pygame.transform.scale(player_images["plane{}1.png".format(self.color)],(88,73))
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH / 4, HEIGHT / 2)
+        # Bewegung
         self.pos = vec(WIDTH / 4, HEIGHT / 2)
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
+        # Schild schützt den Spieler vor Treffern von Felsen
+        self.has_shield = False
+        self.shield_start_time = 0
 
     def update(self):
         if not self.game.in_end_expl and self.game.game_status == None:
             self.acc = vec(0, PLAYER_GRAV)
 
             # Jump
-            if self.game.check_key_pressed(JUMP):
+            if self.game.check_key_pressed(JUMP) and self.rect.top >= 0:
                 self.vel.y = -10
 
             # equations of motion
-            self.vel += self.acc
-            self.pos += self.vel + 0.5 * self.acc
+            if self.rect.bottom < HEIGHT:
+                self.vel += self.acc
+            if self.rect.top <= 0:
+                self.vel = self.acc
 
+            self.pos += self.vel + 0.5 * self.acc
             self.rect.center = self.pos
+
+            if self.rect.top < 0:
+                self.rect.top = 0
+            if self.rect.bottom > HEIGHT:
+                self.rect.bottom = HEIGHT
+                self.vel = vec(0, 0)
 
             # new image
             this_turns_image_num = int(str(pygame.time.get_ticks())[:-1])%3
             if self.last_image_num != this_turns_image_num:
                 self.image = pygame.transform.scale(player_images["plane{}{}.png".format(self.color,this_turns_image_num+1)], (88, 73))
                 self.last_image_num = this_turns_image_num
+
+            if self.has_shield and self.shield_start_time < pygame.time.get_ticks() - self.game.schild_time:
+                self.has_shield = False
+
+            if self.has_shield and self.shield_start_time < pygame.time.get_ticks() - self.game.schild_time + 1000:
+                self.game.schild.kill()
+
+    def start_shield(self):
+        if self.game.schild == None or not self.game.schild.alive():
+            schild = Schild(self)
+            self.game.schild = schild
+            self.game.all_sprites.add(schild)
+        self.has_shield = True
+        self.shield_start_time = pygame.time.get_ticks()
+
+class Schild(pygame.sprite.Sprite):
+    # Schild, das den Spieler vor Felsen schützt
+    def __init__(self, player):
+        self._layer = 4
+        pygame.sprite.Sprite.__init__(self)
+        self.player = player
+        # Bild holen
+        self.image = pygame.transform.scale(schild_image,(15,100))
+        self.rect = self.image.get_rect()
+        self.rect.midleft = (self.player.rect.right,self.player.rect.centery)
+
+    def update(self):
+        self.rect.midleft = (self.player.rect.right, self.player.rect.centery)
 
 class Rock(pygame.sprite.Sprite):
     def __init__(self, game, top_or_button = FROM_BUTTON, höhe = 0, type = GEGENUEBER, color = None, start_x = WIDTH):
@@ -76,17 +118,17 @@ class Rock(pygame.sprite.Sprite):
             if self.type == GEGENUEBER or self.type == KURVE:
                 if int(HEIGHT - self.height - HEIGHT / 3) > 70:
                     new_rock = OppositeRock(self.game, FROM_TOP, int(HEIGHT - self.height - HEIGHT/3), self.type, self.color, self.start_x)
-                new_power_up = PowerUp(self.game,(self.rect.centerx, int(HEIGHT - self.height - HEIGHT/6)),STAR)
+                new_power_up = PowerUp(self.game,(self.rect.centerx, int(HEIGHT - self.height - HEIGHT/6)))
             if self.type == TUNNEL:
                 new_rock = OppositeRock(self.game, FROM_TOP, self.height, self.type, self.color, self.start_x)
-                new_power_up = PowerUp(self.game, (self.rect.centerx,  int(HEIGHT/2)), STAR)
+                new_power_up = PowerUp(self.game, (self.rect.centerx,  int(HEIGHT/2)))
             if self.type == VERSETZT:
                 distance = random.randrange(300,400)
                 new_rock = OppositeRock(self.game, FROM_TOP, self.height, self.type, self.color, self.start_x + distance)
-                new_power_up = PowerUp(self.game, (int(self.rect.centerx + distance/2), int(HEIGHT / 2)), STAR)
+                new_power_up = PowerUp(self.game, (int(self.rect.centerx + distance/2), int(HEIGHT / 2)))
             if self.type == ZENTRAL:
                 new_rock = OppositeRock(self.game, FROM_TOP, self.height, self.type, self.color, self.start_x)
-                new_power_up = PowerUp(self.game, (self.rect.centerx, int(HEIGHT*random.choice([1,3])/4)), STAR)
+                new_power_up = PowerUp(self.game, (self.rect.centerx, int(HEIGHT*random.choice([1,3])/4)))
             if new_rock != None:
                 self.game.all_sprites.add(new_rock)
                 self.game.rocks.add(new_rock)
@@ -105,17 +147,17 @@ class Rock(pygame.sprite.Sprite):
             if self.type == GEGENUEBER or self.type == KURVE:
                 if int(HEIGHT - self.height - HEIGHT / 3) > 70:
                     new_rock = OppositeRock(self.game, FROM_BUTTON, int(HEIGHT - self.height - HEIGHT / 3), self.type, self.color, self.start_x)
-                new_power_up = PowerUp(self.game, (self.rect.centerx, int(self.height + HEIGHT / 6)), STAR)
+                new_power_up = PowerUp(self.game, (self.rect.centerx, int(self.height + HEIGHT / 6)))
             if self.type == TUNNEL:
                 new_rock = OppositeRock(self.game, FROM_BUTTON, self.height, self.type, self.color, self.start_x)
-                new_power_up = PowerUp(self.game, (self.rect.centerx,  int(HEIGHT/2)), STAR)
+                new_power_up = PowerUp(self.game, (self.rect.centerx,  int(HEIGHT/2)))
             if self.type == VERSETZT:
                 distance = random.randrange(300, 400)
                 new_rock = OppositeRock(self.game, FROM_BUTTON, self.height, self.type, self.color, self.start_x + distance)
-                new_power_up = PowerUp(self.game, (int(self.rect.centerx + distance/2), int(HEIGHT / 2)), STAR)
+                new_power_up = PowerUp(self.game, (int(self.rect.centerx + distance/2), int(HEIGHT / 2)))
             if self.type == ZENTRAL:
                 new_rock = OppositeRock(self.game, FROM_TOP, self.height, self.type, self.color, self.start_x)
-                new_power_up = PowerUp(self.game, (self.rect.centerx, int(HEIGHT*random.choice([1,3])/4)), STAR)
+                new_power_up = PowerUp(self.game, (self.rect.centerx, int(HEIGHT*random.choice([1,3])/4)))
             if new_rock != None:
                 self.game.all_sprites.add(new_rock)
                 self.game.rocks.add(new_rock)
@@ -172,6 +214,7 @@ class Ground(pygame.sprite.Sprite):
             new_ground = Ground(self.game,self.top_or_button, False, WIDTH, self.color)
             self.game.all_sprites.add(new_ground)
             self.game.rocks.add(new_ground)
+            self.game.grounds.add(new_ground)
 
     def update(self):
         if not self.game.in_end_expl and self.game.game_status == None:
@@ -201,14 +244,17 @@ class Warnungsschild(pygame.sprite.Sprite):
 
 class PowerUp(pygame.sprite.Sprite):
     # Power-Ups, die der Spieler einsammeln kann
-    def __init__(self, game, center, type):
+    def __init__(self, game, center):
         self._layer = 3
         pygame.sprite.Sprite.__init__(self)
         self.game = game
         # Art des Powerups, Stern oder Schild
-        self.type = type
-        # Bild holen
-        self.image = powerup_images["{}Gold.png".format(self.type)]
+        if random.uniform(0,1) <= self.game.schild_percent:
+            self.type = MEDAL
+            self.image = pygame.transform.scale(powerup_images["{}Gold.png".format(self.type)], (57, 60))
+        else:
+            self.type = STAR
+            self.image = powerup_images["{}Gold.png".format(self.type)]
         self.rect = self.image.get_rect()
         self.rect.center = center
 
