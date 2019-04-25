@@ -37,6 +37,10 @@ KURVE = "kurve"
 ZENTRAL = "zentral"
 FALLEND = "fallend"
 
+# Power-Ups
+STAR = "star"
+MEDAL = "medal"
+
 # Tasten
 JUMP = "jump"
 UP = "up"
@@ -116,6 +120,10 @@ rock_images = load_graphics_from_file_array(file_array,path.join(img_dir,"Rocks"
 file_array = list("ground{}{}.png".format(color,up_down) for color in rock_colors for up_down in ["","Down"])
 ground_images = load_graphics_from_file_array(file_array,path.join(img_dir,"Rocks"), BLACK, as_dict=True)
 
+fallende_felsen_warnung = load_graphics_from_file_array(["warnungsschild.png"],img_dir,(0,0,255))
+
+powerup_images = load_graphics_from_file_array(["medalGold.png","starGold.png"],path.join(img_dir,"UI"),BLACK,as_dict=True)
+
 explosion_anim = {}
 explosion_anim['lg'] = []
 explosion_anim['sm'] = []
@@ -128,7 +136,6 @@ for i in range(9):
     filename = 'sonicExplosion0{}.png'.format(i)
     img = load_graphics_from_file_array([filename],path.join(img_dir,"Explosions"),color_key=BLACK)
     explosion_anim['player'].append(img)
-
 
 #full_row_sound = pygame.mixer.Sound(path.join(snd_dir, 'full_row.wav'))
 #full_row_sound.set_volume(game_sound_volume)

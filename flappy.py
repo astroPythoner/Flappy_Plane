@@ -26,14 +26,20 @@ class Game():
         self.rock_counter = 0
         self.rock_color = random.choice(rock_colors)
 
+        # Geschwindigkeit mit der sich fallende Felsen und Boden bewegen
+        self.speed = 10
+
         # Zum Testen des Spiels den Spieler unsterblich machen (True -> sterblich, False -> unsterblich)
-        self.kill_able = True
+        self.kill_able = False
 
         # Für den Countdown (in millisekunden)
         self.coutdown_start_time = 0
 
-        # Geschwindigkeit mit der sich Felsen und Boden bewegen
-        self.speed = 10
+        # Für die Bewegung des Hintergrunds
+        self.background_x = 0
+
+        # Erreichtes
+        self.collected_starts = 0
 
     def find_josticks(self):
         # Knöpfe und Kontroller finden und Initialisieren
@@ -296,7 +302,7 @@ class Game():
             return False
 
     def show_on_screen(self, surf, calling_reason, selected=None):
-        screen.blit(background, background_rect)
+        self.draw_background(screen)
 
         # Je nach dem ob es um die Kontrollerauswahl geht ein anderen Text zeigen
         if calling_reason == START_GAME:
@@ -344,13 +350,31 @@ class Game():
 
         self.game_status = START_GAME
 
+    def draw_background(self, surf):
+        # Draw the background
+        #  _____________
+        # |             |
+        # | Background  |
+        # |_____________|
+        #       WIDTH   \-> rel_x
+
+        rel_x = self.background_x % WIDTH
+        surf.blit(background, (rel_x - WIDTH, 0))
+        # If Background doesn't cover the whole screen draw an other background to fill it
+        if rel_x < WIDTH:
+            surf.blit(background, (rel_x, 0))
+
+        # If playing move the background
+        if self.game_status == None and not self.in_end_expl:
+            self.background_x -= 1
+
     ########## Hier startet das eigentliche Spiel ##########
     def start_game(self):
         # Multiplayerauswahl
         self.wait_for_single_multiplayer_selection()
         self.game_status = BEFORE_FIRST_GAME
         screen.fill(BLACK)
-        screen.blit(background, background_rect)
+        self.draw_background(screen)
         self.show_end_game_info(screen, WIDTH / 2, 20)
         self.game_status = START_GAME
 
@@ -366,7 +390,7 @@ class Game():
 
             # Bilschirm leeren
             screen.fill(BLACK)
-            screen.blit(background, background_rect)
+            self.draw_background(screen)
 
             # Auf Bildschirmgeschwindigkeit achten
             clock.tick(FPS)
@@ -379,14 +403,14 @@ class Game():
                     self.running = False
 
             # Neue Felsen erstellenw
-            if self.game_status == None:
-                self.create_new_rocks()
+            if self.game_status == None and not self.in_end_expl:
+                self.create_new_rocks_and_power_ups()
 
             # Bewegungen der Sprites asuführen
             self.all_sprites.update()
 
             # Nach Kollisionen suchen
-            if self.kill_able:
+            if self.game_status == None and not self.in_end_expl:
                 self.detect_and_react_collisions()
 
             # Wenn die Endexplosion vorbei ist endet das Spiel
@@ -403,6 +427,7 @@ class Game():
     def new(self):
         self.all_sprites = pygame.sprite.LayeredUpdates()
         self.rocks = pygame.sprite.Group()
+        self.power_ups = pygame.sprite.Group()
 
         # neue Spieler
         player_color = random.choice(player_colors)
@@ -428,17 +453,19 @@ class Game():
         self.running = True
         self.in_end_expl = False
 
-    def create_new_rocks(self):
+    def create_new_rocks_and_power_ups(self):
         new_rock = None
         if self.current_rock_type == GEGENUEBER or self.current_rock_type == VERSETZT:
             if self.last_rock_placing < pygame.time.get_ticks() - self.time_for_next_rock:
-                höhe = int(random.randrange(int(60 + HEIGHT / 3), int(HEIGHT - 60 - HEIGHT / 3)))
                 self.last_rock_placing = pygame.time.get_ticks()
+                höhe = int(random.randrange(int(60 + HEIGHT / 3), int(HEIGHT - 60 - HEIGHT / 3)))
                 new_rock = Rock(self, random.choice([FROM_BUTTON,FROM_TOP]), höhe = höhe, type = self.current_rock_type, color = self.rock_color, start_x = WIDTH)
                 self.time_for_next_rock = random.randrange(500,1000) + [GEGENUEBER,VERSETZT].index(self.current_rock_type) * 850
                 self.rock_counter += 1
-                if self.rock_counter >= 15:
+                if self.rock_counter >= 12:
                     self.current_rock_type = random.choice([TUNNEL,KURVE,ZENTRAL,FALLEND])
+                    if self.current_rock_type == FALLEND:
+                        self.all_sprites.add(Warnungsschild(self))
                     self.rock_counter = 0
                     self.time_for_next_rock = 1250
         elif self.current_rock_type == TUNNEL:
@@ -453,6 +480,8 @@ class Game():
                 self.rock_counter += 1
                 if self.rock_counter >= 8:
                     self.current_rock_type = random.choice([VERSETZT,GEGENUEBER,KURVE,ZENTRAL,FALLEND])
+                    if self.current_rock_type == FALLEND:
+                        self.all_sprites.add(Warnungsschild(self))
                     self.rock_counter = 0
                     self.time_for_next_rock = 1250
         elif self.current_rock_type == KURVE:
@@ -464,6 +493,8 @@ class Game():
                 self.rock_counter += 1
                 if self.rock_counter >= 20:
                     self.current_rock_type = random.choice([TUNNEL,VERSETZT,GEGENUEBER,ZENTRAL,FALLEND])
+                    if self.current_rock_type == FALLEND:
+                        self.all_sprites.add(Warnungsschild(self))
                     self.rock_counter = 0
                     self.time_for_next_rock = 1250
         elif self.current_rock_type == ZENTRAL:
@@ -475,6 +506,8 @@ class Game():
                 self.rock_counter += 1
                 if self.rock_counter >= 15:
                     self.current_rock_type = random.choice([TUNNEL,VERSETZT,GEGENUEBER,KURVE,FALLEND])
+                    if self.current_rock_type == FALLEND:
+                        self.all_sprites.add(Warnungsschild(self))
                     self.rock_counter = 0
                     self.time_for_next_rock = 1250
         elif self.current_rock_type == FALLEND:
@@ -493,8 +526,8 @@ class Game():
             self.rocks.add(new_rock)
 
     def detect_and_react_collisions(self):
-
-        if not self.in_end_expl:
+        # Überprüfen, ob der Spieler gegen ein Felsen geknallt ist
+        if self.kill_able:
             hit_place = (-100, -100)
             hits = pygame.sprite.spritecollide(self.player, self.rocks, False)
             if len(hits) > 0:
@@ -507,15 +540,23 @@ class Game():
                         self.all_sprites.add(self.expl)
                         self.in_end_expl = True
 
+        # Überprüfen, ob der Spieler ein PowerUp gesammelt hat
+        hits = pygame.sprite.spritecollide(self.player, self.power_ups, True)
+        for hit in hits:
+            if hit.type == STAR:
+                self.collected_starts += 1
+
     def draw_display(self):
         # Bildschrim zeichnen
         if self.game_status == NEXT_GAME or self.game_status == VERLOREN:
             self.show_end_game_info(screen,WIDTH/2,180)
-        if self.game_status == COUNTDOWN:
+        elif self.game_status == COUNTDOWN:
             text = str(3-round((time.time() * 1000 - self.coutdown_start_time)/1000))
-            self.draw_text(screen,text,120,WIDTH/2,HEIGHT/2,TEXT_YELLOW,"mitte")
+            self.draw_text(screen,text,150,WIDTH/2,HEIGHT/2,TEXT_YELLOW,"mitte")
             if time.time() * 1000 - self.coutdown_start_time >= 2000:
                 self.game_status = None
+        else:
+            self.draw_text(screen, str(self.collected_starts), 60, 80, 20, TEXT_COLOR, "oben_mitte")
 
 game = Game()
 game.start_game()
