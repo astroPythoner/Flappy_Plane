@@ -38,6 +38,7 @@ ZENTRAL = "zentral"
 FALLEND = "fallend"
 
 # Tasten
+JUMP = "jump"
 UP = "up"
 DOWN = "down"
 RIGHT = "right"

@@ -68,6 +68,9 @@ class Game():
         if self.multiplayer:
             if joystick_num == "both":
                 for joystick in self.all_joysticks:
+                    if check_for == JUMP:
+                        if joystick.get_axis_up() or joystick.get_A() or joystick.get_B():
+                            return True
                     if check_for == LEFT:
                         if joystick.get_axis_left() or joystick.get_shoulder_left():
                             return True
@@ -102,6 +105,9 @@ class Game():
                         if joystick.get_B():
                             return True
             else:
+                if check_for == JUMP:
+                    if self.all_joysticks[joystick_num].get_axis_up() or self.all_joysticks[joystick_num].get_A() or self.all_joysticks[joystick_num].get_B():
+                        return True
                 if check_for == LEFT:
                     if self.all_joysticks[joystick_num].get_axis_left() or self.all_joysticks[joystick_num].get_shoulder_left():
                         return True
@@ -140,6 +146,9 @@ class Game():
                         return True
         else:
             for joystick in self.all_joysticks:
+                if check_for == JUMP:
+                    if joystick.get_axis_up() or joystick.get_A() or joystick.get_B():
+                        return True
                 if check_for == LEFT:
                     if joystick.get_axis_left() or joystick.get_shoulder_left():
                         return True

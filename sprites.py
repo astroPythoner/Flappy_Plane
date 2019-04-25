@@ -21,7 +21,7 @@ class Player(pygame.sprite.Sprite):
             self.acc = vec(0, PLAYER_GRAV)
 
             # Jump
-            if self.game.check_key_pressed(UP):
+            if self.game.check_key_pressed(JUMP):
                 self.vel.y = -10
 
             # equations of motion
