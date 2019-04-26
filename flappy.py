@@ -15,10 +15,6 @@ class Game():
         self.all_joysticks = []
         self.find_josticks()
 
-        # Explosion am Ende abwarten
-        self.in_end_expl = False
-        self.expl = None
-
         # Zum erstellen der Felsen benötigte Variablen
         self.last_rock_placing = pygame.time.get_ticks()
         self.current_rock_type = GEGENUEBER
@@ -32,10 +28,21 @@ class Game():
         # Zum Testen des Spiels den Spieler unsterblich machen (True -> sterblich, False -> unsterblich)
         self.kill_able = True
 
+        # Level in dem sich das Spiel gerade befindet
+        self.level = 1
+
         # Chance zur der ein Power-Up ein Schild ist und Dauer, wie lange man ein Schild hat
         self.schild_percent = 0.1
         self.schild_time = 5000
         self.schild = None
+        self.max_schild_percent = 0.15 # Chance in Level 1
+        self.min_schild_percent = 0.08 # Chance in Level 30, dazwischen linearer Zusammenhang
+
+        # Eingesammele Sterne und benötigte Sterne um ins nächste Level zu kommen
+        self.collected_stars = 0
+        self.needed_stars = 20
+        self.min_needed_stars = 20 # Benötigte Sterne in Level 1
+        self.max_needed_stars = 50 # Benötigte Sterne in Level 30, dazwischen linearer Zusammenhang
 
         # Für den Countdown (in millisekunden)
         self.coutdown_start_time = 0
@@ -43,8 +50,19 @@ class Game():
         # Für die Bewegung des Hintergrunds
         self.background_x = 0
 
-        # Erreichtes
-        self.collected_stars = 0
+        # Explosion am Ende abwarten
+        self.in_end_expl = False
+        self.expl = None
+
+    def make_game_values_more_difficult(self):
+        # Diese Funktion ändert Anzahl der benötigten Sterne und die Chance ein Schild zu bekommen in Abhängigkeit des Levels zwischen den jeweiligen min und max Werten
+        # Bei Level 30 ist der Maxwert erreicht, dazwischen ist ein linearer Zsammenhang nach y= m*x +b
+        m = (self.max_needed_stars-self.min_needed_stars)/(30-1)
+        b = self.max_needed_stars - m * 30
+        self.needed_stars = int(m * self.level + b)
+        m = (self.min_schild_percent - self.max_schild_percent) / (30 - 1)
+        b = self.min_schild_percent - m * 30
+        self.schild_percent = m * self.level + b
 
     def find_josticks(self):
         # Knöpfe und Kontroller finden und Initialisieren
@@ -71,6 +89,8 @@ class Game():
             text_rect.topright = (x, y)
         elif rect_place == "mitte":
             text_rect.center = (x, y)
+        elif rect_place == "mitte_links":
+            text_rect.midleft = (x,y)
         surf.blit(text_surface, text_rect)
 
     def check_key_pressed(self, check_for=ALL, joystick_num="both"):
@@ -195,47 +215,6 @@ class Game():
                         return True
         return False
 
-    def wait_for_single_multiplayer_selection(self):
-        # Am Anfang, vor dem Spiel, wird zwischen Single und Multiplayer ausgewählt.
-        # Links und Rechts wird zum Auswahl ändern benutzt, A oder B zum auswählen. Esc zum Spiel beenden
-        self.find_josticks()
-        selected = 1
-        waiting = True
-        last_switch = pygame.time.get_ticks()
-        while waiting:
-            clock.tick(FPS)
-            self.show_on_screen(screen, self.game_status, selected)
-            pygame.display.flip()
-            # Quit-events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-            if self.check_key_pressed(ESC):
-                pygame.quit()
-            # Auswahl ändern durch hochzählen von selected
-            if self.check_key_pressed(LEFT) or self.check_key_pressed(RIGHT) or self.check_key_pressed(UP) or self.check_key_pressed(DOWN):
-                if last_switch + 300 < pygame.time.get_ticks():
-                    last_switch = pygame.time.get_ticks()
-                    selected += 1
-                    if selected > 1:
-                        selected = 0
-            # Auswahl getroffen
-            if self.check_key_pressed(AB):
-                # Single-palyer
-                if selected == 1:
-                    # Auswählen welcher Kontroller genommen werden soll, wenn Auswahl gepasst hat Spiel starten, sonst nochmals nach Kontrollern suchen und wieder zwischen Multi- und Singelplayer wählen lassen
-                    if self.wait_for_joystick_confirm(screen, 1):
-                        waiting = False
-                        self.end_game = None
-                        self.multiplayer = False
-                # Multi-palyer
-                elif selected == 0:
-                    # Auswählen welche Kontroller genommen werden soll. Weitere Schritte wie beim Single-player
-                    if self.wait_for_joystick_confirm(screen, 2):
-                        waiting = False
-                        self.end_game = None
-                        self.multiplayer = True
-
     def wait_for_joystick_confirm(self, surf, num_joysticks):
         # Diese Funktion zeigt den Bilschirm an, auf dem die zu benutzenden Kontroller gewählt werden.
         # num_joysticks ist die Anzahl der zu wählenden Joysticks
@@ -246,8 +225,8 @@ class Game():
         self.find_josticks()
 
         # Auswahlbilschrimanzeigen
-        self.show_on_screen(surf, None)
-        self.draw_text(surf, "Wähle deine Kontroller", 32, WIDTH / 2, HEIGHT / 2.2)
+        self.show_on_screen(surf, None, False, with_waiting=False,diyplay_flip=False)
+        self.draw_text(surf, "Wähle deinen Kontroller", 32, WIDTH / 2, HEIGHT / 2.2)
         for controller in self.all_joysticks:
             self.draw_text(surf, controller.get_name(), 28, WIDTH / 2 - 10, HEIGHT / 1.9 + 35 * self.all_joysticks.index(controller), rect_place="oben_rechts")
         pygame.display.flip()
@@ -261,8 +240,8 @@ class Game():
         while len(selected_controllers) < num_joysticks:
             clock.tick(FPS)
             # Bildschrimzeichnen
-            self.show_on_screen(surf, None)
-            self.draw_text(surf, "Wähle deine Kontroller", 32, WIDTH / 2, HEIGHT / 2.2)
+            self.show_on_screen(surf, None, False, with_waiting=False, diyplay_flip=False)
+            self.draw_text(surf, "Wähle deinen Kontroller", 32, WIDTH / 2, HEIGHT / 2.2)
             # Jeden gefundenen Kontroller zut Auswahl stellen
             for controller in self.all_joysticks:
                 if self.all_joysticks.index(controller) == selected_controller_num:
@@ -306,54 +285,88 @@ class Game():
         else:
             return False
 
-    def show_on_screen(self, surf, calling_reason, selected=None):
-        self.draw_background(screen)
+    def show_on_screen(self, surf, calling_reason, with_selection=False, with_waiting=True, diyplay_flip=True):
+        # Auf dem Bildschirm die Texte zeigen, die zwischen den Levels stehen.
+        # Wenn with_waiting wird hier gewartet bis Start dedrückt wird.
 
-        # Je nach dem ob es um die Kontrollerauswahl geht ein anderen Text zeigen
-        if calling_reason == START_GAME:
-            self.draw_text(surf, "Flappy Plane", 32, WIDTH / 2, HEIGHT / 2.2)
-            if selected == 0:
-                self.draw_text(surf, "Multi player", 34, WIDTH / 2 + 100, HEIGHT / 1.8, color=TEXT_RED)
-                self.draw_text(surf, "Single player", 25, WIDTH / 2 - 100, HEIGHT / 1.8 + 8)
-            else:
-                self.draw_text(surf, "Multi player", 25, WIDTH / 2 + 100, HEIGHT / 1.8 + 8)
-                self.draw_text(surf, "Single player", 34, WIDTH / 2 - 100, HEIGHT / 1.8, color=TEXT_RED)
+        surf.blit(background, background_rect)
+
+        # Je nach Art des SPielendes ein anderen Text zeigen
+        if calling_reason == VERLOREN:
+            self.all_sprites.draw(screen)
+            self.draw_text(surf, "Verloren", 32, WIDTH / 2, HEIGHT / 2.2)
+            self.draw_text(surf, "Versuche es gleich nochmal", 28, WIDTH / 2, HEIGHT / 1.8)
+        elif calling_reason == NEXT_GAME:
+            self.all_sprites.draw(screen)
+            self.draw_text(surf, "Gewonnen", 32, WIDTH / 2, HEIGHT / 2.2)
+            self.draw_text(surf, "Schaffst du das nächste Level auch?", 28, WIDTH / 2, HEIGHT / 1.8)
+        elif calling_reason == BEFORE_FIRST_GAME:
+            self.draw_text(surf, "Flappy Plane!", 32, WIDTH / 2, HEIGHT / 2.2)
+        elif calling_reason == START_GAME:
+            self.draw_text(surf, "Flappy Plane!", 32, WIDTH / 2, HEIGHT / 2.2)
 
         # Standart Texte
-        self.draw_text(surf, "Flappy!", 64, WIDTH / 2, HEIGHT / 6.5)
+        self.draw_text(surf, "FLAPPY!", 64, WIDTH / 2, HEIGHT / 6.5)
+        self.draw_text(surf, "Level: " + str(self.level), 45, WIDTH / 2, HEIGHT / 3.5)
         self.draw_text(surf, "Drücke Start oder Leertaste zum Starten", 18, WIDTH / 2, HEIGHT * 4 / 5)
         self.draw_text(surf, "Drücke Start und Select oder Leertaste und Enter zum Beenden", 18, WIDTH / 2, HEIGHT * 4 / 5 + 23)
-
-        if calling_reason == START_GAME:
-            self.draw_text(surf, "A/D oder Joystick zum Auswahl ändern, Pfeiltaste oder A/B zum Auswählen", 20, WIDTH / 2, HEIGHT * 3 / 4)
-
-    def show_end_game_info(self, surf, center_x, y):
-        if self.game_status == NEXT_GAME or self.game_status == VERLOREN:
-            self.draw_text(surf, "Flappy", 50, center_x, y)
-            self.all_sprites.draw(screen)
-        if self.game_status == VERLOREN:
-            self.draw_text(surf, "Verloren!", 70, center_x, y+70, TEXT_RED)
-        if not self.game_status == BEFORE_FIRST_GAME:
-            self.draw_text(surf, "Start zum Nochmalspielen", 20, center_x, y + 185)
+        # Bei Multi- / Singleplayer auswahl steht wird der erste Text gezeigt, ansonten der normale
+        if with_selection:
+            self.draw_text(surf, "A/D oder Joystick zum Auswahl ändern, Pfeiltaste oder A/B zum auswählen", 20, WIDTH / 2, HEIGHT * 3 / 4)
         else:
-            self.draw_text(surf, "Start drücken um loszuspielen", 50, center_x, y + 120)
-            self.draw_text(surf, "X/Y oder Pfeiltasten für Einstellungen", 50, center_x, y + 200)
+            self.draw_text(surf, "A/B oder W auf der Tastatur zum hüpfen. Sterne einsammeln um Level zu schaffen", 20, WIDTH / 2, HEIGHT * 3 / 4)
 
-        pygame.display.flip()
-        time.sleep(0.5)
+        # Auf Diplay anzeigen
+        if diyplay_flip:
+            pygame.display.flip()
 
-        waiting = True
-        while waiting:
-            clock.tick(FPS)
-            # Quit-events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-            # mit Start geht's weiter
-            if self.check_key_pressed(START):
-                waiting = False
+        # wenn_waiting hier auf Tastendruck von Start warten
+        last_switch = pygame.time.get_ticks()
+        if with_waiting:
+            waiting = True
+            while waiting:
+                clock.tick(FPS)
+                # Quit-events
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                # mit Start geht's weiter
+                if self.check_key_pressed(START):
+                    waiting = False
+                # Links und Rechts zum erhöhen oder verringern des Levels
+                if self.check_key_pressed(LEFT) and last_switch + 300 < pygame.time.get_ticks():
+                    last_switch = pygame.time.get_ticks()
+                    self.level -= 1
+                    if self.level < 1:
+                        self.level = 1
+                    self.make_game_values_more_difficult()
+                    waiting = False
+                    self.show_on_screen(surf, calling_reason, with_selection, with_waiting, diyplay_flip)
+                if self.check_key_pressed(RIGHT) and last_switch + 300 < pygame.time.get_ticks():
+                    last_switch = pygame.time.get_ticks()
+                    self.level += 1
+                    self.make_game_values_more_difficult()
+                    waiting = False
+                    self.show_on_screen(surf, calling_reason, with_selection, with_waiting, diyplay_flip)
 
-        self.game_status = START_GAME
+    def show_game_info_and_bars(self, surf, x, y):
+        # Zeichnet Infos zum aktuellem Spielstand
+        # oben links aktuelles level
+        self.draw_text(surf, str(self.level), 60, x, y, TEXT_COLOR, "oben_links")
+        # rechts am Rand, wie weit man in diesem Level schon ist
+        BAR_LENGTH = 20
+        BAR_HEIGHT = HEIGHT - 100
+        fill = (self.collected_stars / self.needed_stars) * BAR_HEIGHT
+        if fill < 0:
+            fill = 0
+        if fill > BAR_HEIGHT:
+            fill = BAR_HEIGHT
+        outline_rect = pygame.Rect(x + 5, y + 75, BAR_LENGTH, BAR_HEIGHT)
+        fill_rect = pygame.Rect(x + 5, y + 75 + BAR_HEIGHT - fill, BAR_LENGTH, fill)
+        pygame.draw.rect(surf, [PLAYER_BLUE,PLAYER_GREEN,PLAYER_RED,PLAYER_YELLOW][player_colors.index(self.player.color)], fill_rect)
+        pygame.draw.rect(surf, BLACK, outline_rect, 3)
+        self.draw_text(surf, str(self.needed_stars), 25, x + 30, y + 75, TEXT_COLOR, "mitte_links")
+        self.draw_text(surf, str(self.collected_stars), 25, x + 30, y + 75 + BAR_HEIGHT - fill, TEXT_COLOR, "mitte_links")
 
     def draw_background(self, surf):
         # Draw the background
@@ -375,12 +388,9 @@ class Game():
 
     ########## Hier startet das eigentliche Spiel ##########
     def start_game(self):
-        # Multiplayerauswahl
-        self.wait_for_single_multiplayer_selection()
-        self.game_status = BEFORE_FIRST_GAME
-        screen.fill(BLACK)
-        self.draw_background(screen)
-        self.show_end_game_info(screen, WIDTH / 2, 20)
+        # Kontrollerauswahl
+        self.wait_for_joystick_confirm(screen,1)
+        self.show_on_screen(screen, BEFORE_FIRST_GAME)
         self.game_status = START_GAME
 
         # Dauerschleife des Spiels
@@ -422,6 +432,10 @@ class Game():
             if self.in_end_expl and not self.expl.alive():
                 self.game_status = VERLOREN
 
+            # Wenn genug Sterne eingesammelt wurden endet das Spiel
+            if self.collected_stars >= self.needed_stars:
+                self.game_status = NEXT_GAME
+
             # Skalen und Texte auf den Bildschirm malen
             self.all_sprites.draw(screen)
             self.draw_display()
@@ -446,7 +460,7 @@ class Game():
         self.all_sprites.add(ground1)
         self.rocks.add(ground1)
         self.grounds.add(ground1)
-        ground2 = Ground(self, FROM_TOP,color=self.rock_color )
+        ground2 = Ground(self, FROM_TOP,color=self.rock_color)
         self.all_sprites.add(ground2)
         self.rocks.add(ground2)
         self.grounds.add(ground2)
@@ -461,6 +475,9 @@ class Game():
         self.running = True
         self.in_end_expl = False
         self.collected_stars = 0
+
+        # Spielvaraiblen (also Chance ein Schild zu bekommen und benötigte Sterne) an das Level anpassen
+        self.make_game_values_more_difficult()
 
     def create_new_rocks_and_power_ups(self):
         new_rock = None
@@ -559,14 +576,15 @@ class Game():
     def draw_display(self):
         # Bildschrim zeichnen
         if self.game_status == NEXT_GAME or self.game_status == VERLOREN:
-            self.show_end_game_info(screen,WIDTH/2,180)
+            self.show_on_screen(screen,self.game_status)
+            self.game_status = START_GAME
         elif self.game_status == COUNTDOWN:
             text = str(3-round((time.time() * 1000 - self.coutdown_start_time)/1000))
             self.draw_text(screen,text,150,WIDTH/2,HEIGHT/2,TEXT_YELLOW,"mitte")
             if time.time() * 1000 - self.coutdown_start_time >= 2000:
                 self.game_status = None
         else:
-            self.draw_text(screen, str(self.collected_stars), 60, 80, 20, TEXT_COLOR, "oben_mitte")
+            self.show_game_info_and_bars(screen,10,2)
 
 game = Game()
 game.start_game()
