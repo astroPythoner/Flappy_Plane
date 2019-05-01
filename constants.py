@@ -71,7 +71,7 @@ PLAYER_YELLOW = (245,214,87)
 font_name = pygame.font.match_font('arial')
 
 # Lautstärke
-game_music_volume = 0.8
+game_music_volume = 0.2
 game_sound_volume = 0.75
 
 def load_graphics_from_file_array(file_array, dir, color_key=None, convert_aplha=False, as_dict=False):
@@ -142,9 +142,18 @@ for i in range(9):
     img = load_graphics_from_file_array([filename],path.join(img_dir,"Explosions"),color_key=BLACK)
     explosion_anim['player'].append(img)
 
-#full_row_sound = pygame.mixer.Sound(path.join(snd_dir, 'full_row.wav'))
-#full_row_sound.set_volume(game_sound_volume)
+# Musik und Sounds
+jump_sound = pygame.mixer.Sound(path.join(snd_dir, 'Jump.wav'))
+jump_sound.set_volume(0.5)
+player_die_sound = pygame.mixer.Sound(path.join(snd_dir, 'rumble1.ogg'))
+player_die_sound.set_volume(game_sound_volume)
+won_sound = pygame.mixer.Sound(path.join(snd_dir, 'Won!.wav'))
+won_sound.set_volume(game_sound_volume)
+shield_sound = pygame.mixer.Sound(path.join(snd_dir, 'pow4.wav'))
+shield_sound.set_volume(game_sound_volume)
+star_sound = pygame.mixer.Sound(path.join(snd_dir, 'Star.wav'))
+star_sound.set_volume(0.2)
 
-#pygame.mixer.music.load(path.join(snd_dir, 'Original - Tetris.ogg'))
-#pygame.mixer.music.set_volume(game_music_volume)
-#pygame.mixer.music.play(loops=-1)
+pygame.mixer.music.load(path.join(snd_dir, 'The Plucked Bird.wav'))
+pygame.mixer.music.set_volume(game_music_volume)
+pygame.mixer.music.play(loops=-1)

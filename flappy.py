@@ -402,6 +402,7 @@ class Game():
                 # In Countdownmudos wechseln und Coutndowntimer starten
                 self.game_status = COUNTDOWN
                 self.coutdown_start_time = time.time() * 1000
+                self.countdown_text = None
 
             # Bilschirm leeren
             screen.fill(BLACK)
@@ -434,7 +435,9 @@ class Game():
 
             # Wenn genug Sterne eingesammelt wurden endet das Spiel
             if self.collected_stars >= self.needed_stars:
+                won_sound.play()
                 self.game_status = NEXT_GAME
+                self.level += 1
 
             # Skalen und Texte auf den Bildschirm malen
             self.all_sprites.draw(screen)
@@ -561,6 +564,7 @@ class Game():
                     hit = pygame.sprite.collide_mask(self.player, rock)
                     if hit is not None:
                         hit_place = hit
+                        player_die_sound.play()
                         self.expl = Explosion(self,(hit_place[0]+self.player.rect.centerx,hit_place[1]+self.player.rect.centery),"player")
                         self.all_sprites.add(self.expl)
                         self.in_end_expl = True
@@ -569,8 +573,10 @@ class Game():
         hits = pygame.sprite.spritecollide(self.player, self.power_ups, True)
         for hit in hits:
             if hit.type == STAR:
+                star_sound.play()
                 self.collected_stars += 1
             elif hit.type == MEDAL:
+                shield_sound.play()
                 self.player.start_shield()
 
     def draw_display(self):
@@ -579,8 +585,9 @@ class Game():
             self.show_on_screen(screen,self.game_status)
             self.game_status = START_GAME
         elif self.game_status == COUNTDOWN:
-            text = str(3-round((time.time() * 1000 - self.coutdown_start_time)/1000))
-            self.draw_text(screen,text,150,WIDTH/2,HEIGHT/2,TEXT_YELLOW,"mitte")
+            self.show_game_info_and_bars(screen, 10, 2)
+            self.countdown_text = str(3-round((time.time() * 1000 - self.coutdown_start_time)/1000))
+            self.draw_text(screen,self.countdown_text,150,WIDTH/2,HEIGHT/2,TEXT_YELLOW,"mitte")
             if time.time() * 1000 - self.coutdown_start_time >= 2000:
                 self.game_status = None
         else:

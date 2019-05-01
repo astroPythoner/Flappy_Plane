@@ -21,6 +21,8 @@ class Player(pygame.sprite.Sprite):
         # Schild schützt den Spieler vor Treffern von Felsen
         self.has_shield = False
         self.shield_start_time = 0
+        # Damit der Jump sound nur einmal gespielt wird
+        self.jumped_last_time = False
 
     def update(self):
         if not self.game.in_end_expl and self.game.game_status == None:
@@ -29,6 +31,11 @@ class Player(pygame.sprite.Sprite):
             # Jump
             if self.game.check_key_pressed(JUMP) and self.rect.top >= 0:
                 self.vel.y = -10
+                if not self.jumped_last_time:
+                    jump_sound.play()
+                self.jumped_last_time = True
+            else:
+                self.jumped_last_time = False
 
             # equations of motion
             if self.rect.bottom < HEIGHT:
