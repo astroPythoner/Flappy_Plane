@@ -471,7 +471,7 @@ class Game():
 
         # Spielfelderstell Variablen zurücksetzen
         self.last_rock_placing = pygame.time.get_ticks()
-        self.current_rock_type = KURVE#GEGENUEBER
+        self.current_rock_type = GEGENUEBER
         self.time_for_next_rock = 800
         self.rock_counter = 0
 
