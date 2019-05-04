@@ -1,5 +1,6 @@
 import pygame
 import time
+from math import sin
 from joystickpins import JoystickPins, KeyboardStick
 from constants import *
 from sprites import *
@@ -17,7 +18,7 @@ class Game():
 
         # Zum erstellen der Felsen benötigte Variablen
         self.last_rock_placing = pygame.time.get_ticks()
-        self.current_rock_type = GEGENUEBER
+        self.current_rock_type = None
         self.time_for_next_rock = 800
         self.rock_counter = 0
         self.rock_color = random.choice(rock_colors)
@@ -470,7 +471,7 @@ class Game():
 
         # Spielfelderstell Variablen zurücksetzen
         self.last_rock_placing = pygame.time.get_ticks()
-        self.current_rock_type = GEGENUEBER
+        self.current_rock_type = KURVE#GEGENUEBER
         self.time_for_next_rock = 800
         self.rock_counter = 0
 
@@ -516,7 +517,11 @@ class Game():
         elif self.current_rock_type == KURVE:
             if self.last_rock_placing < pygame.time.get_ticks() - self.time_for_next_rock:
                 self.last_rock_placing = pygame.time.get_ticks()
-                höhe = 100
+                # Sinuskurve der Funktion a⋅sin(b⋅x)+c
+                a = ((HEIGHT - HEIGHT / 3) - (HEIGHT / 3)) / 2  # Streckung in y-Richtung
+                b = 1.5  # Periodendauer (Streckung in x-Richtung)
+                c = (HEIGHT / 3) + a  # Verschiebung nach oben
+                höhe = (a * sin(b * self.rock_counter) + c) - HEIGHT/6
                 new_rock = Rock(self, FROM_BUTTON, höhe = höhe, type = self.current_rock_type, color = self.rock_color, start_x = WIDTH)
                 self.time_for_next_rock = 400
                 self.rock_counter += 1
