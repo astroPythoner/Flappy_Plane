@@ -1,6 +1,7 @@
 import pygame
 import time
 from math import sin
+import __init__
 from joystickpins import JoystickPins, KeyboardStick
 from constants import *
 from sprites import *
