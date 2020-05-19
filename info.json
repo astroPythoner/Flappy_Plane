@@ -1,0 +1,8 @@
+{
+  "name": "Flappy Plane",
+  "description": "Spiele Flappy Bird auf einen neuen Level. Sammel genug Münzen um zu gewinnen und Schilder um geschützt zu sein. Fallende Steine und colle Felsen erwarten dich!",
+  "type": "Flappy Bird",
+  "author": "AstroPythoner",
+  "players": "1",
+  "playable with": ["Controller","Tastatur als Controller"]
+}

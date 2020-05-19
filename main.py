@@ -2,7 +2,12 @@ import pygame
 import time
 from math import sin
 import __init__
-from joystickpins import JoystickPins, KeyboardStick
+try:
+    from joystickpins import JoystickPins, KeyboardStick
+except Exception:
+    from joystickpins import joystickpins
+    JoystickPins = joystickpins.JoystickPins
+    KeyboardStick = joystickpins.KeyboardStick
 from constants import *
 from sprites import *
 

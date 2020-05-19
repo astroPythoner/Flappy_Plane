@@ -3,7 +3,7 @@ Flappy Birds like game with pygame
 
 # Ausführen
 ```
-python3 flappy.py
+python3 main.py
 ```
 
 # Notwendige Bibliotheken
@@ -26,14 +26,14 @@ Springe mit der Pfeil nach unten Taste und sammle die Sterne. Wenn du eine Münz
 
 # Copyright/Attribution Notice:
 
-##Art:
+## Art:
 Thanks to Kenney from "www.kenney.nl".
 
 "tappy plane" art by Kenney.nl
 
 https://opengameart.org/content/tappy-plane
 
-##Sounds:
+## Sounds:
 some of them made with bfxr (https://www.bfxr.net)
 
 others from opengameart.org (e.g. https://opengameart.org/content/won-orchestral-winning-jingle)
