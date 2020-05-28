@@ -10,7 +10,7 @@ FPS = 60
 pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Flappy! - v1.0")
+pygame.display.set_caption("Flappy! - v1.1")
 clock = pygame.time.Clock()
 
 # Player properties
